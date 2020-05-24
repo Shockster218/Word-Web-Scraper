@@ -3972,11 +3972,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Projects\\Portfolio\\Thesaurus Web Crawler\\Thesaurus Web Crawler.csproj",
+      "projectUniqueName": "d:\\Projects\\Portfolio\\Word Crawler\\Thesaurus Web Crawler.csproj",
       "projectName": "Thesaurus Web Crawler",
-      "projectPath": "D:\\Projects\\Portfolio\\Thesaurus Web Crawler\\Thesaurus Web Crawler.csproj",
+      "projectPath": "d:\\Projects\\Portfolio\\Word Crawler\\Thesaurus Web Crawler.csproj",
       "packagesPath": "C:\\Users\\wowmo\\.nuget\\packages\\",
-      "outputPath": "D:\\Projects\\Portfolio\\Thesaurus Web Crawler\\obj\\",
+      "outputPath": "d:\\Projects\\Portfolio\\Word Crawler\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
