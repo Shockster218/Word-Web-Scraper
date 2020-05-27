@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <RootNamespace>Thesaurus_Web_Crawler</RootNamespace>
+    <RootNamespace>Word_Web_Scraper</RootNamespace
   </PropertyGroup>
 
   <ItemGroup>
