@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using HtmlAgilityPack;
 
 class Program
@@ -27,13 +27,29 @@ class Program
 
     private static void Main(string[] args)
     {
-        if (File.Exists(nounsDir)) { File.Delete(nounsDir); }
-        if (File.Exists(adjectivesDir)) { File.Delete(adjectivesDir); }
-        WordCrawler();
-        Console.ReadKey();
+        Console.WriteLine("Press ENTER to start or ANY OTHER to exit");
+
+        while (true)
+        {
+            if (Console.KeyAvailable)
+            {
+                ConsoleKey key = Console.ReadKey().Key;
+                if (key == ConsoleKey.Enter)
+                {
+                    if (File.Exists(nounsDir)) { File.Delete(nounsDir); }
+                    if (File.Exists(adjectivesDir)) { File.Delete(adjectivesDir); }
+                    WordScraper().Wait();
+                    Environment.Exit(1);
+                }
+                else
+                {
+                    Environment.Exit(1);
+                }
+            }
+        }
     }
 
-    private static async void WordCrawler()
+    private static async Task WordScraper()
     {
         //Loop through ascii characters
         for (int i = (int) ascii; i <= ascii + 25; i++)
