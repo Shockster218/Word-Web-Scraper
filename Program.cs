@@ -1,57 +1,106 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 
 class Program
 {
-    private const string directory = "https://www.merriam-webster.com/browse/thesaurus/";
-    private const string entryDirectory = "https://www.merriam-webster.com/thesaurus/";
+    private const char ascii = 'a';
+    private const int startPage = 1;
 
-    private static List<String> pageEntries = new List<String>();
+    private const string browseDir = "https://www.merriam-webster.com/browse/thesaurus/";
+    private const string entryDir = "https://www.merriam-webster.com/thesaurus/";
+
+    private static string nounsDir = $"{ Environment.CurrentDirectory }/nouns.txt";
+    private static string adjectivesDir = $"{ Environment.CurrentDirectory }/adjectives.txt";
+
+    private static List<string> pageEntries = new List<string>();
 
     private static List<string> nouns = new List<string>();
     private static List<string> adjectives = new List<string>();
 
+    private static Regex filter = new Regex(@"[^a-zA-Z]");
+
     private static void Main(string[] args)
     {
-        StartRootCrawler();
+        if (File.Exists(nounsDir)) { File.Delete(nounsDir); }
+        if (File.Exists(adjectivesDir)) { File.Delete(adjectivesDir); }
+        WordCrawler();
         Console.ReadKey();
     }
 
-    private static async void StartRootCrawler()
+    private static async void WordCrawler()
     {
         //Loop through ascii characters
-        for (int i = 97; i <= 122; i++)
+        for (int i = (int) ascii; i <= ascii + 25; i++)
         {
-            string rootURL = directory + (char) i;
-            HtmlDocument mainDocument = new HtmlDocument();
-            HttpClient rootClient = new HttpClient();
-            mainDocument.LoadHtml(await rootClient.GetStringAsync(rootURL));
-            int pageCount = GetPageCount(mainDocument);
-            for (int j = 1; j <= pageCount; j++)
+            Console.WriteLine($"Started for {Char.ToUpper((char)i)}");
+            string rootURL = browseDir + (char) i;
+            int pageCount = await RetrievePageCount(rootURL);
+            for (int j = startPage; j <= pageCount; j++)
             {
-                string countedURL = rootURL + '/' + j.ToString();
-                HtmlDocument pageDocument = new HtmlDocument();
-                HttpClient pageClient = new HttpClient();
-                pageDocument.LoadHtml(await pageClient.GetStringAsync(countedURL));
-                PopulatePageEntries(pageDocument);
-                pageClient.Dispose();
+                await Task.Run(() => RetrievePageEntries(rootURL + '/' + j.ToString()));
                 foreach (string entry in pageEntries)
                 {
-                    HtmlDocument entryDocument = new HtmlDocument();
-                    HttpClient entryClient = new HttpClient();
-                    entryDocument.LoadHtml(await entryClient.GetStringAsync(entryDirectory + entry));
-                    FilterEntry(entry, entryDocument);
-                    entryClient.Dispose();
+                    try
+                    {
+                        await FilterEntry(entry);
+                    }
+                    catch
+                    {
+                        break;
+                    }
                 }
-                Console.WriteLine($"Page {j} complete for {(char)i}");
+                Console.WriteLine($"Page {j} completed for {Char.ToUpper((char)i)}");
+                pageEntries.Clear();
             }
             Console.WriteLine($"Nouns added: {nouns.Count}");
             Console.WriteLine($"Adjectives added: {adjectives.Count}");
-            rootClient.Dispose();
+            WriteWordsToFile();
+        }
+    }
+
+    private static async Task<int> RetrievePageCount(string url)
+    {
+        HtmlDocument mainDocument = new HtmlDocument();
+        HttpClient rootClient = new HttpClient();
+        mainDocument.LoadHtml(await rootClient.GetStringAsync(url));
+        int pageCount = GetPageCount(mainDocument);
+        rootClient.Dispose();
+        return pageCount;
+    }
+
+    private static async Task RetrievePageEntries(string url)
+    {
+        HtmlDocument pageDocument = new HtmlDocument();
+        HttpClient pageClient = new HttpClient();
+        pageDocument.LoadHtml(await pageClient.GetStringAsync(url));
+        PopulatePageEntries(pageDocument);
+        pageClient.Dispose();
+    }
+
+    private static async Task FilterEntry(string entry)
+    {
+        if (entry.Length > 3 && !filter.IsMatch(entry))
+        {
+            HtmlDocument entryDocument = new HtmlDocument();
+            HttpClient entryClient = new HttpClient();
+            entryDocument.LoadHtml(await entryClient.GetStringAsync(entryDir + entry));
+
+            try
+            {
+                string lexicalCategory = entryDocument.DocumentNode.Descendants("a").Where(node => node.GetAttributeValue("class", "").Equals("important-blue-link")).FirstOrDefault().InnerText.ToLower();
+                if (lexicalCategory == "noun") { nouns.Add(entry); }
+                else if (lexicalCategory == "adjective" || lexicalCategory == "adj") { adjectives.Add(entry); }
+            }
+            catch
+            {
+                return;
+            }
         }
     }
 
@@ -73,17 +122,27 @@ class Program
         }
     }
 
-    private static void FilterEntry(string entry, HtmlDocument document)
+    private static void WriteWordsToFile()
     {
-        try
+        using(StreamWriter nWriter = new StreamWriter(nounsDir, true))
         {
-            string lexicalCategory = document.DocumentNode.Descendants("a").Where(node => node.GetAttributeValue("class", "").Equals("important-blue-link")).FirstOrDefault().InnerText.ToLower();
-            if (lexicalCategory == "noun") { nouns.Add(entry); }
-            else if (lexicalCategory == "adjective" || lexicalCategory == "adj") { adjectives.Add(entry); }
+            foreach (string noun in nouns)
+            {
+                nWriter.WriteLine(noun);
+            }
+            nWriter.Close();
         }
-        catch
+
+        using(StreamWriter aWriter = new StreamWriter(adjectivesDir, true))
         {
-            return;
+            foreach (string adjective in adjectives)
+            {
+                aWriter.WriteLine(adjective);
+            }
+            aWriter.Close();
         }
+
+        nouns.Clear();
+        adjectives.Clear();
     }
 }
